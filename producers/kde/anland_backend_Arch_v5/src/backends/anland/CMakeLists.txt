@@ -4,10 +4,10 @@ target_sources(kwin PRIVATE
     anland_input.cpp
     anland_logging.cpp
     anland_output.cpp
-    # PipeWire audio engine: sink-monitor capture + virtual mic source
-    anland_audio.c
-    # PipeWire camera engine: virtual Video/Source nodes fed by the Android camera
-    anland_camera.c
+    # KWin-independent PipeWire engines, shared via the top-level
+    # libdisplay_producer/ (reusable by other producers; no KWin API deps)
+    libdisplay_producer/anland_audio.c
+    libdisplay_producer/anland_camera.c
     # symlink to the top-level libdisplay_producer/ (talks to the Android display daemon)
     libdisplay_producer/display_producer.c
     libdisplay_producer/socket_utils.c

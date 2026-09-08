@@ -91,7 +91,9 @@ build_pkg() {
     local overlay_dir="$SCRIPT_DIR/$src"
     if [ -d "$overlay_dir" ]; then
         log "Overlaying '$overlay_dir' -> $tree (overwrite-merge)"
-        cp -a "$overlay_dir/." "$tree/"
+        # -L dereferences the libdisplay_producer symlinks so the merged tree
+        # is self-contained (relative links only resolve inside the checkout).
+        cp -aL "$overlay_dir/." "$tree/"
     fi
 
     log "Applying patch: $patch -> $tree"
