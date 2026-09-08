@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include "../common/protocol.h"
+#include "protocol.h"
 
 typedef struct display_ctx display_ctx;
 
@@ -43,17 +43,44 @@ int  trigger_refresh(display_ctx *ctx);
 int  poll_input_event(display_ctx *ctx, struct InputEvent *event, int timeout_ms);
 int poll_input_event_extend_data(display_ctx *ctx, void* payload, size_t size, int timeout_ms);
 
+/* Receive the fds that follow an INPUT_TYPE_RESOURCE event (a DATA_MSG_INPUT_EXTEND_FDS
+ * message carrying the service's fds as SCM_RIGHTS). Call this right after
+ * poll_input_event() returns an INPUT_TYPE_RESOURCE event, using event.resource.fdnum
+ * as the expected count. Writes up to max_fds received fds into fds[] and the actual
+ * count into *fd_count. Returns 1 on success, 0 if nothing was pending, -1 on error
+ * (consumer loss). The caller owns the received fds and must close them. */
+int  poll_input_event_extend_fds(display_ctx *ctx, int *fds, int max_fds,
+                                 int *fd_count, int timeout_ms);
+
+/* Ask the consumer for a service's resources (e.g. SERVICE_TYPE_CAMERA). Sends an
+ * OUTPUT_TYPE_RESOURCES_REQUEST; the consumer replies asynchronously with an
+ * INPUT_TYPE_RESOURCE event + fds on the data channel. args may be NULL (treated as
+ * three zeros). No-op (returns 0) in fallback. */
+int  push_resources_request(display_ctx *ctx, uint32_t service_type, const uint32_t *args);
+
 int push_output_event(display_ctx *ctx, const struct OutputEvent *event);
-//接收到输出事件时，可能会有额外的数据需要接收，所以增加一个带长度的版本
-//但是发送方必须设置变长事件的size字段，表示随后数据的大小，而且必须紧跟事件发送数据
-//变长事件不得使用push_output_event发送，必须使用push_output_event_with_length发送
-//接收端使用标准事件接收后根据size字段知道后续数据的大小，务必使用socket手动接收变长数据（必须有超时，避免对端挂掉）
+/* Variable-length output events: an output event may carry extra trailing payload,
+ * hence this length-aware variant. The sender must set the event's size field to
+ * the payload size and send the payload immediately after the event. Variable-length
+ * events must NOT be sent with push_output_event() — use push_output_event_with_length().
+ * The receiver reads the standard event first, learns the payload size from the size
+ * field, and must then recv() the payload manually over the socket (with a timeout,
+ * in case the peer dies). */
 int push_output_event_with_length(display_ctx *ctx, const struct OutputEvent *event, void* payload, size_t size);
+/* Register a callback invoked after fallback is set but before consumer-owned fds
+ * are closed. It must not re-enter display_producer. */
+int  set_pre_release_callback(display_ctx *ctx, void (*on_pre_release)(void *), void *userdata);
+
 /* Register a callback invoked when the consumer is lost and the context drops
- * back to fallback. */
+ * back to fallback, after its consumer-owned resources are released. */
 int  set_fallback_callback(display_ctx *ctx, void (*on_fallback)(void *), void *userdata);
 
 bool is_fallback(display_ctx *ctx);
+
+/* Drop the current consumer connection without dropping the daemon control
+ * connection.  This is used when the KWin/EGL side cannot import a freshly
+ * received dmabuf set; the caller can then use try_exit_fallback() to retry. */
+void force_fallback(display_ctx *ctx);
 
 /* Attempt to leave fallback: pick up the consumer fds and immediately receive the
  * dmabuf set (the consumer sends the dmabufs right after the fd handshake). Clears

@@ -8,11 +8,11 @@ target_sources(kwin PRIVATE
     anland_audio.c
     # PipeWire camera engine: virtual Video/Source nodes fed by the Android camera
     anland_camera.c
-    # vendored libdisplay_producer (talks to the Android display daemon)
-    display_producer.c
-    socket_utils.c
+    # symlink to the top-level libdisplay_producer/ (talks to the Android display daemon)
+    libdisplay_producer/display_producer.c
+    libdisplay_producer/socket_utils.c
 )
 
-target_include_directories(kwin PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(kwin PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/libdisplay_producer)
 # PkgConfig::PipeWire is already resolved at the top level for the screencast plugin.
 target_link_libraries(kwin PRIVATE Libdrm::Libdrm PkgConfig::PipeWire)
