@@ -552,8 +552,11 @@ public class MainActivity extends Activity
                 return null;
             return p.exitValue() == 0;
         } catch (Exception e) {
+            // No usable su (e.g. KernelSU without /system/bin/su in the app
+            // PATH): fall back to a local stat. The daemon socket is usually
+            // world-accessible, so this still detects a live daemon.
             Log.w(TAG, "root socket probe failed: " + e);
-            return null;
+            return isSocketFileLocal(path);
         } finally {
             if (p != null) p.destroy();
         }
