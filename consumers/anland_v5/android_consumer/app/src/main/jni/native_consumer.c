@@ -281,7 +281,12 @@ static int collect_dmabufs(struct consumer_state *s)
         }
 
         int fd = anb->handle->data[0];   /* first fd backs the dma-buf */
-        int stride = anb->stride, width = anb->width, height = anb->height;
+        int width = anb->width, height = anb->height;
+        /* Some devices/ROMs report an unset stride for Surface buffers. The
+         * producer derives its EGL pitch from this value, so a zero stride
+         * makes dmabuf import fail (EGL_BAD_ACCESS: invalid pitch). Fall back
+         * to the buffer width in pixels (RGBA8888, 4 bytes per pixel). */
+        int stride = anb->stride > 0 ? anb->stride : anb->width;
 
         /* deduplicate by ANativeWindowBuffer pointer (stable per queue slot) */
         bool dup_found = false;

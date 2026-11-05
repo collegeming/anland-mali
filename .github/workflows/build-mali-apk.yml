@@ -1,0 +1,55 @@
+name: Build Mali APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ mali-stride-fix ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Android SDK and NDK
+        uses: android-actions/setup-android@v4
+        with:
+          packages: "platform-tools build-tools;34.0.0 ndk;29.0.13113456"
+          accept-android-sdk-licenses: true
+
+      - name: Set NDK_DIR environment variable
+        run: echo "NDK_DIR=$ANDROID_HOME/ndk/29.0.13113456" >> $GITHUB_ENV
+
+      - name: Generate debug keystore
+        run: |
+          mkdir -p $HOME/.android
+          keytool -genkeypair -v -keystore $HOME/.android/debug.keystore \
+            -storepass android -alias androiddebugkey -keypass android \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -dname "CN=Android Debug, O=Android, C=US" -noprompt
+
+      - name: Build plain release APK
+        working-directory: consumers/anland_v5/android_consumer
+        run: |
+          chmod +x gradlew
+          ./gradlew assemblePlainRelease \
+            -Pandroid.injected.signing.store.file="$HOME/.android/debug.keystore" \
+            -Pandroid.injected.signing.store.password=android \
+            -Pandroid.injected.signing.key.alias=androiddebugkey \
+            -Pandroid.injected.signing.key.password=android
+          cp app/build/outputs/apk/plain/release/app-plain-release.apk \
+             app/build/outputs/apk/anland-v5-mali.apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v7
+        with:
+          name: anland-v5-mali
+          path: consumers/anland_v5/android_consumer/app/build/outputs/apk/anland-v5-mali.apk
