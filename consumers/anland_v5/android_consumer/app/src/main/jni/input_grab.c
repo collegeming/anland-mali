@@ -89,6 +89,18 @@
 #define GOLD_NAME_PREFIX "Gold Keyboardremaps"
 #define GOLD_VENDOR 0xffff
 #define GOLD_PRODUCT 0xffff
+/* This device's Gold module presents its virtual keyboard as a native Xiaomi
+ * one (15d9:00a3) so MIUI enables its native shortcut handling. That is still
+ * Gold's output; accept the identity alongside upstream's. */
+#define GOLD_VENDOR_XIAOMI 0x15d9
+#define GOLD_PRODUCT_XIAOMI 0x00a3
+
+/* id.vendor/id.product are unsigned 16-bit, hence the uint16_t parameters. */
+static int is_gold_identity(uint16_t vendor, uint16_t product) {
+    return (vendor == GOLD_VENDOR && product == GOLD_PRODUCT) ||
+           (vendor == GOLD_VENDOR_XIAOMI && product == GOLD_PRODUCT_XIAOMI);
+}
+
 enum input_source { SOURCE_PHYSICAL, SOURCE_GOLD, SOURCE_COMBINED };
 static enum input_source g_source = SOURCE_PHYSICAL;
 static int selected_physical_node(const char *path);
@@ -1097,7 +1109,7 @@ static int inspect_device(const char *path, struct dev_entry *out, int do_grab)
         out->vendor = id.vendor;
         out->product = id.product;
     }
-    out->gold = have_id && id.vendor == GOLD_VENDOR && id.product == GOLD_PRODUCT &&
+    out->gold = have_id && is_gold_identity(id.vendor, id.product) &&
             strncmp(out->name, GOLD_NAME_PREFIX, sizeof(GOLD_NAME_PREFIX) - 1) == 0;
     if (out->gold && g_source == SOURCE_PHYSICAL) {
         close(fd);
