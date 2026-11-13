@@ -1,3 +1,9 @@
+> **状态：停止开发（兼容构建保留）**
+>
+> 本 fork 不再新增功能。当前 Droidspaces app 的 Anland “启动”按钮仍调用 `com.anland.consumer.SecondaryActivity`，只有 5.19 兼容构建可用；对应 APK 已发布在 [xring-o3-droidspaces-package](https://github.com/collegeming/xring-o3-droidspaces-package) 的 release `anland-consumer-compat-5.19`。
+>
+> 上游 5.23 已移除 `SecondaryActivity`，其 APK 见 release `anland-consumer-mali`，不能由当前 Droidspaces app 直接启动。本仓库仅保留 5.19 兼容构建的源码与历史记录。
+
 # Anland Display Protocol V3
 
 <p align="left">
